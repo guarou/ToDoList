@@ -10,15 +10,18 @@ import UIKit
 
 class TodoListViewController: UITableViewController{
     
-    var itemArray = [String]()
+    var itemArray = [TodoItem]()
     let defaults = UserDefaults.standard
     var textField: UITextField?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        let newItem1 = TodoItem()
+        newItem1.title = "eat breakfast"
+        itemArray.append(newItem1)
         
-        if let items = defaults.array(forKey: "toDoListArray") as? [String]{
+        if let items = defaults.array(forKey: "toDoListArray") as? [TodoItem]{
             itemArray = items
         }
     }
@@ -30,19 +33,20 @@ class TodoListViewController: UITableViewController{
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TodoItemCell", for: indexPath)
-        cell.textLabel?.text = itemArray[indexPath.row]
+        
+        let item = itemArray[indexPath.row]
+        
+        cell.textLabel?.text = item.title
+        
+        cell.accessoryType = item.checked ? .checkmark : .none
+        
         return cell
     }
     
     //Delegate methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        
-        if tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark{
-            tableView.cellForRow(at: indexPath)?.accessoryType = .none
-        }else{
-            tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
-        }
-        
+        itemArray[indexPath.row].checked = !itemArray[indexPath.row].checked
+        tableView.reloadData()
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
@@ -57,19 +61,20 @@ class TodoListViewController: UITableViewController{
         }
         
         let addAction = UIAlertAction(title: "Add", style: .default) { (action) in
-            if let text = self.textField?.text{
-                if self.textField?.text != ""{
-                    self.itemArray.append(text)
-                    self.defaults.set(self.itemArray, forKey: "toDoListArray")
-                }
-            }
+            
+            let itemToAdd = TodoItem()
+            
+            itemToAdd.title = (self.textField?.text!)!
+            self.itemArray.append(itemToAdd)
+                
+            self.defaults.set(self.itemArray, forKey: "toDoListArray")
             self.tableView.reloadData()
         }
         
-        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+        //let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
         
         alert.addAction(addAction)
-        alert.addAction(cancelAction)
+        //alert.addAction(cancelAction)
         
         present(alert, animated: true, completion: nil)
     }
