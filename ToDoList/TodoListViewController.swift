@@ -11,19 +11,19 @@ import UIKit
 class TodoListViewController: UITableViewController{
     
     var itemArray = [TodoItem]()
-    let defaults = UserDefaults.standard
     var textField: UITextField?
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("TodoItems.plist")
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
-        let newItem1 = TodoItem()
-        newItem1.title = "eat breakfast"
-        itemArray.append(newItem1)
+        print(dataFilePath!)
         
-        if let items = defaults.array(forKey: "toDoListArray") as? [TodoItem]{
-            itemArray = items
-        }
+        loadTodoItems()
+        
+//        if let items = defaults.array(forKey: "toDoListArray") as? [TodoItem]{
+//            itemArray = items
+//        }
     }
 
     //Data source methods
@@ -46,7 +46,7 @@ class TodoListViewController: UITableViewController{
     //Delegate methods
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         itemArray[indexPath.row].checked = !itemArray[indexPath.row].checked
-        tableView.reloadData()
+        saveTodoItems()
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
@@ -65,10 +65,12 @@ class TodoListViewController: UITableViewController{
             let itemToAdd = TodoItem()
             
             itemToAdd.title = (self.textField?.text!)!
+            
             self.itemArray.append(itemToAdd)
                 
-            self.defaults.set(self.itemArray, forKey: "toDoListArray")
-            self.tableView.reloadData()
+            //self.defaults.set(self.itemArray, forKey: "toDoListArray")
+            
+            self.saveTodoItems()
         }
         
         //let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
@@ -79,6 +81,30 @@ class TodoListViewController: UITableViewController{
         present(alert, animated: true, completion: nil)
     }
     
+    func saveTodoItems(){
+        let encoder = PropertyListEncoder()
+        
+        do{
+            let data = try encoder.encode(itemArray)
+            try data.write(to:dataFilePath!)
+        }catch{
+            print("Error:\(error)")
+        }
+        
+        self.tableView.reloadData()
+    }
+    
+    func loadTodoItems(){
+        
+        do{
+            if let data = try? Data(contentsOf: dataFilePath!){
+                let decoder = PropertyListDecoder()
+                itemArray = try decoder.decode([TodoItem].self, from: data)
+            }
+        }catch{
+            print("Error:\(error)")
+        }
+    }
 
 }
 
