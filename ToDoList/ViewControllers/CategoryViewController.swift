@@ -7,53 +7,38 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
 
 class CategoryViewController: UITableViewController {
     
-    var categoryArray = [Category]()
-    var textField: UITextField?
+    let realm = try! Realm()
+    
+    var categories: Results<Category>?
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        //If coredata is implemented, the default initializer is not allowed
-
-        //        let category1 = Category()
-//        category1.name = "Sports"
-//        categoryArray.append(category1)
-//
-//        let category2 = Category()
-//        category2.name = "Homework"
-//        categoryArray.append(category2)
-//
-//        let category3 = Category()
-//        category3.name = "Eat food"
-//        categoryArray.append(category3)
-        
         loadCategoryList()
     }
     
     @IBAction func AddButtonPressed(_ sender: UIBarButtonItem) {
+        
+        var textField = UITextField()
+        
         let alert = UIAlertController(title: "Add Category", message: "Do you want to add category to the list?", preferredStyle: .alert)
         
-        alert.addTextField { (textField) in
-            self.textField = textField
-            self.textField?.placeholder = "Add a category..."
+        alert.addTextField { (field) in
+            textField = field
+            textField.placeholder = "Add a category..."
         }
         
         let addAction = UIAlertAction(title: "Add", style: .default) { (action) in
             
-            let categoryToAdd = Category(context: self.context)
+            let categoryToAdd = Category()
+            categoryToAdd.name = textField.text!
             
-            categoryToAdd.name = (self.textField?.text!)!
-            
-            self.categoryArray.append(categoryToAdd)
-            
-            self.saveCategoryList()
-            
-            self.tableView.reloadData()
+            self.saveCategoryList(category: categoryToAdd)
         }
         
         //let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
@@ -66,12 +51,12 @@ class CategoryViewController: UITableViewController {
     
     //MARK: - TableView DataSource and Delegates Methods
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return categoryArray.count
+        return categories?.count ?? 1
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
-        cell.textLabel?.text = categoryArray[indexPath.row].name
+        cell.textLabel?.text = categories?[indexPath.row].name ?? "No Category added"
         return cell
     }
     
@@ -86,13 +71,15 @@ class CategoryViewController: UITableViewController {
         let destinationViewController = segue.destination as! TodoListViewController
         
         if let indexPath = tableView.indexPathForSelectedRow{
-            destinationViewController.selectedCategory = categoryArray[indexPath.row]
+            destinationViewController.selectedCategory = categories?[indexPath.row]
         }
     }
     
-    func saveCategoryList(){
+    func saveCategoryList(category: Category){
         do{
-            try context.save()
+            try realm.write {
+                realm.add(category)
+            }
         }catch{
             print("Error:\(error)")
         }
@@ -100,12 +87,9 @@ class CategoryViewController: UITableViewController {
         tableView.reloadData()
     }
     
-    func loadCategoryList(with request: NSFetchRequest<Category> = Category.fetchRequest()){
-        do{
-            categoryArray = try context.fetch(request)
-        }catch{
-            print("Error:\(error)")
-        }
+    func loadCategoryList(){
+       
+        categories = realm.objects(Category.self)
         
         tableView.reloadData()
     }
